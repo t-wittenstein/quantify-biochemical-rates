@@ -36,6 +36,12 @@ def numpy_None_concatenate(A1, A2):
     else:
         return np.concatenate([A1, A2])
 
+def get_shape(A):
+    if isinstance(C, spmatrix):
+        return C.size
+    else:
+        return C.shape
+
 def numpy_to_cvxopt_matrix(A):
     if A is None:
         return A
@@ -248,7 +254,7 @@ def Rate_Inference_Dimerization(P_joint, reg_param, gamma = 1):
             
     Bj = np.zeros(len(P_downstream)-1) #Dependent variable Vector
     for j in range(len(Bj)):
-        Bj[j] = gamma*(j+1)*(j+2)*P_downstream[j+2] + gamma*(j+1)*(j+0)*P2[j+1]
+        Bj[j] = gamma*(j+1)*(j+2)*P2[j+2] + gamma*(j+1)*(j+0)*P2[j+1]
 
     #Infering Reaction Rate
     f_est = lsqlin(Gij, Bj, reg = reg_param, lb = np.zeros(len(P_upstream)))['x']
