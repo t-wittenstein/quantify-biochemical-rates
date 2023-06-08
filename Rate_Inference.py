@@ -36,12 +36,6 @@ def numpy_None_concatenate(A1, A2):
     else:
         return np.concatenate([A1, A2])
 
-def get_shape(A):
-    if isinstance(C, spmatrix):
-        return C.size
-    else:
-        return C.shape
-
 def numpy_to_cvxopt_matrix(A):
     if A is None:
         return A
@@ -254,10 +248,90 @@ def Rate_Inference_Dimerization(P_joint, reg_param, gamma = 1):
             
     Bj = np.zeros(len(P_downstream)-1) #Dependent variable Vector
     for j in range(len(Bj)):
-        Bj[j] = gamma*(j+1)*(j+2)*P2[j+2] + gamma*(j+1)*(j+0)*P2[j+1]
+        Bj[j] = gamma*(j+1)*(j+2)*P_downstream[j+2] + gamma*(j+1)*(j+0)*P_downstream[j+1]
 
     #Infering Reaction Rate
     f_est = lsqlin(Gij, Bj, reg = reg_param, lb = np.zeros(len(P_upstream)))['x']
     f_est = np.array([i for i in f_est])
     
     return f_est
+
+def Rate_Inference_Cross_Validation(P_joint_train, P_joint_validation, reg_param, tau = 1):
+    
+    P_joint_train = P_joint_train/sum(sum(P_joint_train)) #Normalize distribution
+    P_upstream_train = sum(P_joint_train.T) #First Upstream variable distribution
+    P_downstream_train = sum(P_joint_train) #First Downstream variable distribution
+
+    P_joint_validation = P_joint_validation/sum(sum(P_joint_validation)) #Normalize distribution
+    P_upstream_validation = sum(P_joint_validation.T) #Second Upstream variable distribution
+    P_downstream_validation = sum(P_joint_validation) #Second Downstream variable distribution
+
+    #Get full distribution
+    P_joint_full = P_joint_train + P_joint_validation
+    P_upstream_full = P_upstream_train + P_upstream_validation
+    P_downstream_full =  P_downstream_train + P_downstream_validation
+
+    #Normalize full distributions
+    P_upstream_full = P_upstream_full/sum(P_upstream_full)
+    P_downstream_full = P_downstream_full/sum(P_downstream_full)
+    P_joint_full = P_joint_full/sum(sum(P_joint_full))
+
+    # Calculate matices/vectors for all data sets (full, training, validation)
+    Gij = np.zeros((len(P_downstream_full)-1,len(P_upstream_full)))
+    for j in range(len(Gij)):
+        if P_downstream_full[j] != 0:
+            Gij[j] = P_joint_full.T[:-1][j]
+        else:
+            Gij[j] = P_joint_full.T[:-1][j]
+    Bj = np.zeros(len(P_downstream_full)-1)
+    for j in range(len(Bj)):
+        Bj[j] = (j+1)*P_downstream_full[j+1]/tau
+
+    Gij_train = np.zeros((len(P_downstream_train)-1,len(P_upstream_train)))
+    for j in range(len(Gij_train)):
+        if P_downstream_train[j] != 0:
+            Gij_train[j] = P_joint_train.T[:-1][j]
+        else:
+            Gij_train[j] = P_joint_train.T[:-1][j]
+    Bj_train = np.zeros(len(P_downstream_train)-1)
+    for j in range(len(Bj_train)):
+        Bj_train[j] = (j+1)*P_downstream_train[j+1]/tau
+
+    Gij_val = np.zeros((len(P_downstream_validation)-1,len(P_upstream_validation)))
+    for j in range(len(Gij_val)):
+        if P_downstream_validation[j] != 0:
+            Gij_val[j] = P_joint_validation.T[:-1][j]
+        else:
+            Gij_val[j] = P_joint_validation.T[:-1][j]
+    Bj_val = np.zeros(len(P_downstream_validation)-1)
+    for j in range(len(Bj_val)):
+        Bj_val[j] = (j+1)*P_downstream_validation[j+1]/tau
+
+    #Adding constant rate function constraint
+    h = np.zeros(len(P_upstream_train)-1)
+
+    M_const = []
+    for i in range(len(P_upstream_train)-1):
+        M_const.append([0]*i+[1,-1]+[0]*(len(P_upstream_validation)-2-i))
+    M_const = np.array(M_const)
+
+    #Infering Reaction Rates for both data sets
+    fest_var = lsqlin(Gij_train, Bj_train, reg = 2**(0.5)*reg_param, lb = np.zeros(len(P_upstream_train)))['x']
+    fest_const = lsqlin(Gij_val, Bj_val, reg = 2**(0.5)*reg_param, Aeq = M_const,beq=h, lb = np.zeros(len(P_upstream_validation)))['x']
+
+    fest_var = np.array([i for i in fest_var])
+    fest_const = np.array([i for i in fest_const])
+
+    #Calculate Errors
+    err_var = np.dot((np.dot(Gij_val,fest_var)-Bj_val).T,(np.dot(Gij_val,fest_var)-Bj_val))
+    err_const = np.dot((np.dot(Gij_val,fest_const)-Bj_val).T,(np.dot(Gij_val,fest_const)-Bj_val))
+
+    #Choose the variable or the constant rate depending on their errors
+    if err_const < 1.05*err_var:
+        fest = lsqlin(Gij, Bj, reg = reg_param,Aeq = M_const,beq=h, lb = np.zeros(len(P_upstream_full)))['x']
+        fest = np.array([i for i in fest])
+    else:
+        fest = lsqlin(Gij, Bj, reg = reg_param, lb = np.zeros(len(P_upstream_full)))['x']
+        fest = np.array([i for i in fest])
+        
+    return fest
