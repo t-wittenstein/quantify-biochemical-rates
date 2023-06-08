@@ -1,11 +1,14 @@
 # Quantifying biochemical reaction rates from static populationvariability within incompletely observed complex networks
 
-Link to the main paper will be added once it is published.
+Supplementary Code for the PLOS Computational Biology publication: https://doi.org/10.1371/journal.pcbi.1010183
+
 
 ## Code and Data
 
 ### Simulation Code: 
 C++ code to simulate the four different systems introduced in Figure 2 of the main paper. The minimum number for each reaction to occur, the starting conditions as well as all function parameters need to be given as arguments.
+
+In the original version of the simulation code which was also used in the paper there was a mistake leading to the simulation stopping earlier than expected. Instead of sampling each reaction N number of times, it stopped as soon as one single reaction reached N occurences. However, we found no significant deviations for out data in most cases, only in some specific scenarios using the corrected simulation code lead to slight improved inference quality.
 
 * `Bistable_sim.cpp`
 * `Oscillating_sim.cpp`
@@ -43,7 +46,7 @@ The following functions can be used to infer reaction rates from given data:
 * `Rate_Inference_main`: Function infering reaction rates, needs joint probability distribution and regularization parameter as arguments (the lifetime of the affected variable can also be specified).
 * `Rate_Inference_Monotonicity`: Adding a further monotonicity constraint as either *'pos'* or *'neg'*.
 * `Rate_Inference_Dimerization`: Code for the different system where the variable degrades via dimerization (Figure 5 of the main text).
-* `Rate_Inference_Cross_Validation`: #TODO (Missing)
+* `Rate_Inference_Cross_Validation`: Compares the normal rate inference against a constant rate and determines which one has the smallest Error, needs two seperate joint probability distributions as two halfs of a data set but returns the inference for the full set.
 
 
 
@@ -111,4 +114,4 @@ ax.legend(loc = 'best');
 
 
 ### Contacts
-If you have any questions or comments, please feel free to email Timon Wittenstein (timon.w95@gmail.com).
+If you have any questions or comments, please feel free to email Timon Wittenstein (timon.wittenstein@mail.utoronto.ca).
