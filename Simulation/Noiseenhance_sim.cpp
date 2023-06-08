@@ -107,7 +107,7 @@ void Gillespies(int N, int X, int Y, int Z, double L1, double L2, double L3, dou
 			species[2] = species[2] - 1;
 			N6 = N6 + 1;
 		}
-	} while (N1<N && N2<N && N3<N && N4<N && N5<N && N6<N);
+	} while (N1<N || N2<N || N3<N || N4<N || N5<N || N6<N);
 
 
         //save Data
